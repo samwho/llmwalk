@@ -13,6 +13,7 @@ import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime
+from functools import lru_cache
 
 import mlx.core as mx
 from mlx.nn import Module
@@ -25,6 +26,20 @@ from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 from sortedcontainers import SortedList
+
+_BAND_COLORS = [
+    "#7f7f7f",  # 0-10%: grey
+    "#ff3b30",  # 10-20%: red
+    "#ff6a00",  # 20-30%: orange
+    "#ff8c00",  # 30-40%: dark orange
+    "#ffb000",  # 40-50%: amber
+    "#ffd000",  # 50-60%: yellow
+    "#d7e500",  # 60-70%: yellow-green
+    "#a8e600",  # 70-80%: greenish
+    "#4cd964",  # 80-90%: green
+    "#00c853",  # 90-100%: bright green
+]
+_BAND_STYLES = [Style(color=c) for c in _BAND_COLORS]
 
 
 @dataclass
@@ -54,8 +69,9 @@ class Branch:
 def _clone_kv_cache(c: KVCache) -> KVCache:
     cloned = KVCache()
     cloned.offset = c.offset
-    cloned.keys = mx.contiguous(c.keys) if c.keys is not None else None
-    cloned.values = mx.contiguous(c.values) if c.values is not None else None
+    # Deep-copy the cache arrays so branches don't alias mutable state.
+    cloned.keys = mx.array(c.keys) if c.keys is not None else None
+    cloned.values = mx.array(c.values) if c.values is not None else None
     return cloned
 
 
@@ -121,6 +137,7 @@ class PromptTreeSearch:
         self.branches.add(root)
         self._push_frontier(root)
 
+    @lru_cache(maxsize=65536)
     def decode_token(self, token_id: int) -> str:
         return self.tokenizer.decode([token_id], skip_special_tokens=True)  # type: ignore[call-arg]
 
@@ -185,7 +202,7 @@ class PromptTreeSearch:
             branch.cache = None
             return
 
-        if branch.token is None: # root branch
+        if branch.token is None:  # root branch
             cache_after = self.model.make_cache() if hasattr(self.model, "make_cache") else []  # type: ignore[assignment]
             logprobs = self._run_model(cache_after, self.prompt)
         else:
@@ -258,21 +275,7 @@ def style_for_token_probability(prob: float) -> Style:
         prob = 1.0
 
     band = min(int(prob * 10), 9)  # 0..9
-
-    band_colors = [
-        "#7f7f7f",  # 0-10%: grey
-        "#ff3b30",  # 10-20%: red
-        "#ff6a00",  # 20-30%: orange
-        "#ff8c00",  # 30-40%: dark orange
-        "#ffb000",  # 40-50%: amber
-        "#ffd000",  # 50-60%: yellow
-        "#d7e500",  # 60-70%: yellow-green
-        "#a8e600",  # 70-80%: greenish
-        "#4cd964",  # 80-90%: green
-        "#00c853",  # 90-100%: bright green
-    ]
-
-    return Style(color=band_colors[band])
+    return _BAND_STYLES[band]
 
 
 def render_probability_legend() -> Text:
@@ -292,6 +295,9 @@ def render_probability_legend() -> Text:
             legend.append("  ")
 
     return legend
+
+
+_PROBABILITY_LEGEND = render_probability_legend()
 
 
 def render_branches(walker: PromptTreeSearch) -> Table:
@@ -348,7 +354,7 @@ def render_stats_bar(walker: PromptTreeSearch) -> Table:
 
 def render_view(walker: PromptTreeSearch) -> Group:
     return Group(
-        render_probability_legend(),
+        _PROBABILITY_LEGEND,
         render_branches(walker),
         render_stats_bar(walker),
     )
