@@ -9,9 +9,6 @@ from __future__ import annotations
 
 import argparse
 import heapq
-import os
-import shutil
-import subprocess
 import sys
 import time
 from dataclasses import dataclass
@@ -81,18 +78,13 @@ def _eval_prompt_cache(cache: list[KVCache]) -> None:
 
 def _top_tokens_from_logprobs(logprobs: mx.array) -> list[OutputToken]:
     vocab = int(logprobs.shape[0])
-    if args.top_k <= 0:
-        # Correct but expensive; for good performance set --top-k.
-        sorted_indices = mx.argsort(logprobs)[::-1]
-    else:
-        k = min(args.top_k, vocab)
-        part = mx.argpartition(logprobs, vocab - k)
-        top_idx = part[vocab - k :]
-        top_lp = mx.take(logprobs, top_idx)
-        order = mx.argsort(top_lp)[::-1]
-        sorted_indices = mx.take(top_idx, order)
+    k = min(args.top_k, vocab)
+    part = mx.argpartition(logprobs, vocab - k)
+    top_idx = part[vocab - k :]
+    top_lp = mx.take(logprobs, top_idx)
+    order = mx.argsort(top_lp)[::-1]
+    sorted_indices = mx.take(top_idx, order)
 
-    # Temperature doesn't change ordering, but it does change probabilities.
     if args.temperature == 1.0:
         probs = mx.exp(mx.take(logprobs, sorted_indices))
     else:
@@ -289,13 +281,24 @@ class PromptTreeSearch:
         return thread
 
     def _ensure_branch_state(self, branch: Branch) -> None:
-        if branch.next_logprobs is not None and branch.cache is not None:
+        if branch.next_logprobs is not None and (not args.prompt_cache or branch.cache is not None):
+            return
+
+        if not args.prompt_cache:
+            toks = self.prompt + [t.token for t in branch.answer_tokens()]
+            inputs = mx.array([toks], mx.int32)
+            logits = self.model(inputs)[:, -1, :]
+            logits = logits.astype(mx.float32)
+            logprobs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
+            mx.eval(logprobs)
+            branch.next_logprobs = mx.reshape(logprobs, (-1,))
             return
 
         if branch.parent is None:
             cache = self.model.make_cache() if hasattr(self.model, "make_cache") else []  # type: ignore[assignment]
             inputs = mx.array([self.prompt], mx.int32)
             logits = self.model(inputs, cache=cache)[:, -1, :]
+            logits = logits.astype(mx.float32)
             logprobs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
             mx.eval(logprobs)
             _eval_prompt_cache(cache)
@@ -312,6 +315,7 @@ class PromptTreeSearch:
         token_id = branch.token.token
         inputs = mx.array([[token_id]], mx.int32)
         logits = self.model(inputs, cache=cache)[:, -1, :]
+        logits = logits.astype(mx.float32)
         logprobs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
         mx.eval(logprobs)
         _eval_prompt_cache(cache)
@@ -460,60 +464,6 @@ def main() -> None:
         signal.stop()
 
 
-def _strip_profile_args(argv: list[str]) -> list[str]:
-    cleaned: list[str] = []
-    it = iter(argv)
-    for arg in it:
-        if arg == "--profile":
-            continue
-        if arg == "--profile-native":
-            continue
-        if arg == "--profile-output":
-            next(it, None)
-            continue
-        if arg.startswith("--profile-output="):
-            continue
-        if arg == "--profile-rate":
-            next(it, None)
-            continue
-        if arg.startswith("--profile-rate="):
-            continue
-        cleaned.append(arg)
-    return cleaned
-
-
-def _maybe_run_py_spy_and_exit(parser: argparse.ArgumentParser) -> None:
-    if not args.profile:
-        return
-    if os.environ.get("LLMTREE_PROFILE_CHILD") == "1":
-        return
-
-    py_spy = shutil.which("py-spy")
-    if py_spy is None:
-        parser.error(
-            "--profile requires `py-spy` on PATH (try `brew install py-spy` or `cargo install py-spy`)"
-        )
-
-    child_env = os.environ.copy()
-    child_env["LLMTREE_PROFILE_CHILD"] = "1"
-
-    cmd = [
-        py_spy,
-        "record",
-        "-o",
-        args.profile_output,
-        "--rate",
-        str(args.profile_rate),
-    ]
-    if args.profile_native:
-        cmd.append("--native")
-
-    cmd.append("--")
-    cmd.extend([sys.executable, __file__, *_strip_profile_args(sys.argv[1:])])
-
-    raise SystemExit(subprocess.call(cmd, env=child_env))
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--prompt", default="What is 2+2?", help="Prompt to score")
 parser.add_argument("-m", "--model", default="mlx-community/Llama-3.2-1B-Instruct-4bit")
@@ -523,31 +473,16 @@ parser.add_argument("--top-k", dest="top_k", default=50, type=int)
 parser.add_argument("--top-p", dest="top_p", default=1.0, type=float, help="Nucleus sampling threshold (0 < p <= 1)")
 parser.add_argument("--temperature", type=float, default=1.0, help="Softmax temperature (> 0)")
 parser.add_argument(
+    "--prompt-cache",
+    action=argparse.BooleanOptionalAction,
+    default=True,
+    help="Cache KV states for prompt/branches (disable to reduce memory use; slower).",
+)
+parser.add_argument(
     "--stats-interval",
     type=float,
     default=0.1,
     help="Seconds between live stats bar updates (<=0 disables)",
-)
-parser.add_argument(
-    "--profile",
-    action="store_true",
-    help="Run under py-spy and write a flamegraph SVG, then exit.",
-)
-parser.add_argument(
-    "--profile-output",
-    default="profile.svg",
-    help="Where to write the flamegraph SVG.",
-)
-parser.add_argument(
-    "--profile-rate",
-    type=int,
-    default=100,
-    help="Sampling rate for py-spy (samples/sec).",
-)
-parser.add_argument(
-    "--profile-native",
-    action="store_true",
-    help="Include native frames (py-spy --native).",
 )
 argv = [a for a in sys.argv[1:] if a != "--"]
 args = parser.parse_args(argv)
@@ -557,5 +492,4 @@ if args.temperature <= 0:
 if not (0 < args.top_p <= 1):
     parser.error("--top-p must be in the range (0, 1]")
 
-_maybe_run_py_spy_and_exit(parser)
 main()
