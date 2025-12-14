@@ -13,7 +13,6 @@ import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from threading import Lock, Thread
 
 import mlx.core as mx
 from mlx.nn import Module
@@ -106,27 +105,14 @@ def _top_tokens_from_logprobs(logprobs: mx.array) -> list[OutputToken]:
     return output_tokens
 
 
-class StopSignal:
-    _stop = False
-
-    def stop(self):
-        self._stop = True
-
-    @property
-    def stopped(self) -> bool:
-        return self._stop
-
-
 class PromptTreeSearch:
     model: Module
     tokenizer: TokenizerWrapper
     prompt: list[int]
-    signal: StopSignal
-    _lock: Lock
-    _decoded_token_cache: dict[int, str]
     _frontier: list[tuple[float, int, Branch]]
     _finished_eos: SortedList[Branch]
     _heap_counter: int = 0
+    _stopped: bool = False
 
     tokens: int = 0
     pruned: int = 0
@@ -135,18 +121,17 @@ class PromptTreeSearch:
     _start: datetime | None = None
     _end: datetime | None = None
 
-    def __init__(self, model: Module, tokenizer: TokenizerWrapper, prompt: list[int], signal: StopSignal) -> None:
+    def __init__(self, model: Module, tokenizer: TokenizerWrapper, prompt: list[int]) -> None:
         self.model = model
         self.tokenizer = tokenizer
         self.prompt = prompt
-        self.signal = signal
-        self._lock = Lock()
         self._frontier = []
         self._finished_eos = SortedList(key=lambda b: -b.probability)
 
         root = Branch(parent=None, token=None)
         self.branches = SortedList(key=lambda b: -b.probability)
         self.branches.add(root)
+        self._init_root_branch(root)
         self._push_frontier(root)
 
     def decode_token(self, token_id: int) -> str:
@@ -154,36 +139,28 @@ class PromptTreeSearch:
 
     @property
     def active(self) -> int:
-        with self._lock:
-            return len(self._frontier)
+        return len(self._frontier)
 
     @property
     def n_finished(self) -> int:
-        with self._lock:
-            return len(self._finished_eos)
+        return len(self._finished_eos)
 
     def top_branches(self, n: int) -> list[Branch]:
-        with self._lock:
-            return list(self.branches[:n])
+        return list(self.branches[:n])
 
     def stats_snapshot(self) -> tuple[int, int, int]:
-        with self._lock:
-            return (len(self._frontier), self.pruned, self.tokens)
+        return (len(self._frontier), self.pruned, self.tokens)
 
-    def _discard_branch_unlocked(self, branch: Branch) -> None:
+    def _discard_branch(self, branch: Branch) -> None:
         try:
             self.branches.remove(branch)
         except ValueError:
             pass
 
-    def _push_frontier_unlocked(self, branch: Branch) -> None:
+    def _push_frontier(self, branch: Branch) -> None:
         self._heap_counter += 1
         # Use a max-heap by storing negative probability.
         heapq.heappush(self._frontier, (-branch.probability, self._heap_counter, branch))
-
-    def _push_frontier(self, branch: Branch) -> None:
-        with self._lock:
-            self._push_frontier_unlocked(branch)
 
     def _update_low_watermark(self) -> None:
         if len(self._finished_eos) < args.n:
@@ -191,120 +168,140 @@ class PromptTreeSearch:
             return
         self._low_watermark = self._finished_eos[args.n - 1].probability
 
-    def _should_stop(self) -> bool:
-        if self.signal.stopped:
-            return True
-        with self._lock:
-            if not self._frontier:
-                return True
-            if self._low_watermark is None:
-                return False
-            best_prob = -self._frontier[0][0]
-            return best_prob < self._low_watermark
+    def stop(self) -> None:
+        self._stopped = True
 
-    def start(self) -> Thread:
+    @property
+    def stopped(self) -> bool:
+        return self._stopped
+
+    def should_stop(self) -> bool:
+        if self._stopped:
+            return True
+        if not self._frontier:
+            return True
+        if self._low_watermark is None:
+            return False
+        best_prob = -self._frontier[0][0]
+        return best_prob < self._low_watermark
+
+    def begin(self) -> None:
         self._start = datetime.now()
 
-        def loop():
-            while not self._should_stop():
-                with self._lock:
-                    _, _, branch = heapq.heappop(self._frontier)
-                    low_watermark = self._low_watermark
-
-                if branch.finish_reason is not None:
-                    continue
-                if low_watermark is not None and branch.probability < low_watermark:
-                    with self._lock:
-                        self.pruned += 1
-                        branch.finish_reason = "pruned"
-                    continue
-
-                self._ensure_branch_state(branch)
-                if branch.next_logprobs is None:
-                    branch.finish_reason = "error"
-                    break
-
-                with self._lock:
-                    # `branch` is no longer a leaf once expanded, so remove it from the display set.
-                    self._discard_branch_unlocked(branch)
-
-                new_branches: list[Branch] = []
-                frontier_add: list[Branch] = []
-                eos_add: list[Branch] = []
-                pruned_children = 0
-                for tok in _top_tokens_from_logprobs(branch.next_logprobs):
-                    new_prob = branch.probability * tok.prob
-                    new_branch = Branch(parent=branch, token=tok, probability=new_prob)
-
-                    if new_prob < args.min_probability:
-                        pruned_children += 1
-                        new_branch.finish_reason = "low_probability"
-                        new_branches.append(new_branch)
-                        continue
-
-                    if tok.token in self.tokenizer.eos_token_ids:
-                        new_branch.finish_reason = "eos_token"
-                        new_branches.append(new_branch)
-                        eos_add.append(new_branch)
-                        continue
-
-                    new_branches.append(new_branch)
-                    frontier_add.append(new_branch)
-
-                with self._lock:
-                    self.pruned += pruned_children
-                    for b in new_branches:
-                        self.branches.add(b)
-                    for b in frontier_add:
-                        self._push_frontier_unlocked(b)
-                    for b in eos_add:
-                        self._finished_eos.add(b)
-                    if eos_add:
-                        self._update_low_watermark()
-                    self.tokens += 1
-
-                # The cache is needed for descendants; the logits are not.
-                branch.next_logprobs = None
-
-        thread = Thread(target=loop)
-        thread.start()
-        return thread
-
-    def _ensure_branch_state(self, branch: Branch) -> None:
-        if branch.next_logprobs is not None and (branch.cache is not None):
+    def step(self) -> None:
+        if self.should_stop():
             return
 
-        if branch.parent is None:
-            cache = self.model.make_cache() if hasattr(self.model, "make_cache") else []  # type: ignore[assignment]
-            inputs = mx.array([self.prompt], mx.int32)
-            logits = self.model(inputs, cache=cache)[:, -1, :]
-            logits = logits.astype(mx.float32)
-            logprobs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
-            mx.eval(logprobs)
-            _eval_prompt_cache(cache)
-            branch.cache = cache
-            branch.next_logprobs = mx.reshape(logprobs, (-1,))
+        _, _, branch = heapq.heappop(self._frontier)
+        low_watermark = self._low_watermark
+
+        if branch.finish_reason is not None:
+            return
+        if low_watermark is not None and branch.probability < low_watermark:
+            self.pruned += 1
+            branch.finish_reason = "pruned"
             return
 
-        parent = branch.parent
-        self._ensure_branch_state(parent)
-        if parent.cache is None or branch.token is None:
+        self._compute_branch_state(branch)
+        if branch.next_logprobs is None:
+            branch.finish_reason = "error"
+            self.stop()
             return
 
-        cache = _clone_prompt_cache(parent.cache)
-        token_id = branch.token.token
-        inputs = mx.array([[token_id]], mx.int32)
+        # `branch` is no longer a leaf once expanded, so remove it from the display set.
+        self._discard_branch(branch)
+
+        new_branches: list[Branch] = []
+        frontier_add: list[Branch] = []
+        eos_add: list[Branch] = []
+        pruned_children = 0
+        for tok in _top_tokens_from_logprobs(branch.next_logprobs):
+            new_prob = branch.probability * tok.prob
+            new_branch = Branch(parent=branch, token=tok, probability=new_prob)
+
+            if new_prob < args.min_probability:
+                pruned_children += 1
+                new_branch.finish_reason = "low_probability"
+                new_branches.append(new_branch)
+                continue
+
+            if tok.token in self.tokenizer.eos_token_ids:
+                new_branch.finish_reason = "eos_token"
+                new_branches.append(new_branch)
+                eos_add.append(new_branch)
+                continue
+
+            new_branches.append(new_branch)
+            frontier_add.append(new_branch)
+
+        self.pruned += pruned_children
+        for b in new_branches:
+            self.branches.add(b)
+        for b in frontier_add:
+            self._push_frontier(b)
+        for b in eos_add:
+            self._finished_eos.add(b)
+        if eos_add:
+            self._update_low_watermark()
+        self.tokens += 1
+
+        # The cache is needed for descendants; the logits are not.
+        branch.next_logprobs = None
+
+    def _init_root_branch(self, root: Branch) -> None:
+        if root.parent is not None or root.token is not None:
+            return
+        if root.cache is not None and root.next_logprobs is not None:
+            return
+
+        cache = self.model.make_cache() if hasattr(self.model, "make_cache") else []  # type: ignore[assignment]
+        inputs = mx.array([self.prompt], mx.int32)
         logits = self.model(inputs, cache=cache)[:, -1, :]
         logits = logits.astype(mx.float32)
         logprobs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
         mx.eval(logprobs)
         _eval_prompt_cache(cache)
-        branch.cache = cache
-        branch.next_logprobs = mx.reshape(logprobs, (-1,))
+        root.cache = cache
+        root.next_logprobs = mx.reshape(logprobs, (-1,))
+
+    def _compute_branch_state(self, branch: Branch) -> None:
+        if branch.cache is not None and branch.next_logprobs is not None:
+            return
+
+        # Root should always be initialized up-front.
+        if branch.parent is None:
+            return
+
+        # Non-recursive: build a path up to the nearest ancestor with a cache, then
+        # initialize forward again.
+        path: list[Branch] = []
+        cur = branch
+        while cur.cache is None and cur.parent is not None:
+            path.append(cur)
+            cur = cur.parent
+
+        if cur.cache is None:
+            return
+
+        for node in reversed(path):
+            parent = node.parent
+            tok = node.token
+            if parent is None or parent.cache is None or tok is None:
+                raise RuntimeError("Branch tree invariant violated while computing state")
+
+            cache = _clone_prompt_cache(parent.cache)
+            token_id = tok.token
+            inputs = mx.array([[token_id]], mx.int32)
+            logits = self.model(inputs, cache=cache)[:, -1, :]
+            logits = logits.astype(mx.float32)
+            logprobs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
+            mx.eval(logprobs)
+            _eval_prompt_cache(cache)
+            node.cache = cache
+            node.next_logprobs = mx.reshape(logprobs, (-1,))
 
 
 def style_for_token_probability(prob: float) -> Style:
-    # Discrete 10% probability bands for readability.
     if prob != prob:  # NaN
         prob = 0.0
     elif prob < 0.0:
@@ -314,8 +311,6 @@ def style_for_token_probability(prob: float) -> Style:
 
     band = min(int(prob * 10), 9)  # 0..9
 
-    # Low -> high: red -> orange -> yellow -> green.
-    # Chosen to look distinct even on terminals without truecolor support.
     band_colors = [
         "#7f7f7f",  # 0-10%: grey
         "#ff3b30",  # 10-20%: red
@@ -424,24 +419,22 @@ def main() -> None:
 
     console = Console()
 
-    signal = StopSignal()
-    walker = PromptTreeSearch(model, tokenizer, prompt, signal)
-    walker_thread = walker.start()
+    walker = PromptTreeSearch(model, tokenizer, prompt)
+    walker.begin()
 
     try:
         with Live(console=console, transient=False) as live:
-            def render():
-                while not signal.stopped:
-                    time.sleep(max(0.1, args.stats_interval))
+            interval = max(0.1, args.stats_interval)
+            next_render = time.monotonic()
+            live.update(render_view(walker))
+            while not walker.should_stop():
+                walker.step()
+                if args.stats_interval > 0 and time.monotonic() >= next_render:
                     live.update(render_view(walker))
-            render_thread = Thread(target=render, daemon=True)
-            render_thread.start()
-            walker_thread.join()
-            signal.stop()
-            render_thread.join()
+                    next_render = time.monotonic() + interval
             live.update(render_view(walker))
     except KeyboardInterrupt:
-        signal.stop()
+        walker.stop()
 
 
 parser = argparse.ArgumentParser()
