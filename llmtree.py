@@ -64,17 +64,6 @@ def _clone_prompt_cache(cache: list[KVCache]) -> list[KVCache]:
     return [_clone_kv_cache(c) for c in cache]
 
 
-def _eval_prompt_cache(cache: list[KVCache]) -> None:
-    arrays: list[mx.array] = []
-    for c in cache:
-        if c.keys is not None:
-            arrays.append(c.keys)
-        if c.values is not None:
-            arrays.append(c.values)
-    if arrays:
-        mx.eval(arrays)
-
-
 def _top_tokens_from_logprobs(logprobs: mx.array) -> list[OutputToken]:
     vocab = int(logprobs.shape[0])
     k = min(args.top_k, vocab)
@@ -137,6 +126,13 @@ class PromptTreeSearch:
     def decode_token(self, token_id: int) -> str:
         return self.tokenizer.decode([token_id], skip_special_tokens=True)  # type: ignore[call-arg]
 
+    def _run_model(self, cache: list[KVCache], input_ids: list[int]) -> mx.array:
+        inputs = mx.array([input_ids], mx.int32)
+        logits = self.model(inputs, cache=cache)[:, -1, :]
+        logits = logits.astype(mx.float32)
+        logprobs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
+        return mx.reshape(logprobs, (-1,))
+
     @property
     def active(self) -> int:
         return len(self._frontier)
@@ -147,15 +143,6 @@ class PromptTreeSearch:
 
     def top_branches(self, n: int) -> list[Branch]:
         return list(self.branches[:n])
-
-    def stats_snapshot(self) -> tuple[int, int, int]:
-        return (len(self._frontier), self.pruned, self.tokens)
-
-    def _discard_branch(self, branch: Branch) -> None:
-        try:
-            self.branches.remove(branch)
-        except ValueError:
-            pass
 
     def _push_frontier(self, branch: Branch) -> None:
         self._heap_counter += 1
@@ -193,34 +180,35 @@ class PromptTreeSearch:
             return
 
         _, _, branch = heapq.heappop(self._frontier)
-        low_watermark = self._low_watermark
 
-        if branch.finish_reason is not None:
-            return
-        if low_watermark is not None and branch.probability < low_watermark:
+        if self._low_watermark is not None and branch.probability < self._low_watermark:
             self.pruned += 1
             branch.finish_reason = "pruned"
             return
 
-        self._compute_branch_state(branch)
-        if branch.next_logprobs is None:
-            branch.finish_reason = "error"
-            self.stop()
-            return
+        if branch.cache is None or branch.next_logprobs is None:
+            parent = branch.parent
+            tok = branch.token
+            if parent is None or tok is None or parent.cache is None:
+                raise RuntimeError("Branch tree invariant violated while computing state")
 
-        # `branch` is no longer a leaf once expanded, so remove it from the display set.
-        self._discard_branch(branch)
+            token_id = tok.token
+            branch.cache = _clone_prompt_cache(parent.cache)
+            branch.next_logprobs = self._run_model(branch.cache, [token_id])
+
+        # `branch` is no longer a leaf once expanded, so remove it from the
+        # display set.
+        self.branches.remove(branch)
 
         new_branches: list[Branch] = []
         frontier_add: list[Branch] = []
         eos_add: list[Branch] = []
-        pruned_children = 0
         for tok in _top_tokens_from_logprobs(branch.next_logprobs):
             new_prob = branch.probability * tok.prob
             new_branch = Branch(parent=branch, token=tok, probability=new_prob)
 
             if new_prob < args.min_probability:
-                pruned_children += 1
+                self.pruned += 1
                 new_branch.finish_reason = "low_probability"
                 new_branches.append(new_branch)
                 continue
@@ -234,7 +222,6 @@ class PromptTreeSearch:
             new_branches.append(new_branch)
             frontier_add.append(new_branch)
 
-        self.pruned += pruned_children
         for b in new_branches:
             self.branches.add(b)
         for b in frontier_add:
@@ -249,56 +236,9 @@ class PromptTreeSearch:
         branch.next_logprobs = None
 
     def _init_root_branch(self, root: Branch) -> None:
-        if root.parent is not None or root.token is not None:
-            return
-        if root.cache is not None and root.next_logprobs is not None:
-            return
-
         cache = self.model.make_cache() if hasattr(self.model, "make_cache") else []  # type: ignore[assignment]
-        inputs = mx.array([self.prompt], mx.int32)
-        logits = self.model(inputs, cache=cache)[:, -1, :]
-        logits = logits.astype(mx.float32)
-        logprobs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
-        mx.eval(logprobs)
-        _eval_prompt_cache(cache)
         root.cache = cache
-        root.next_logprobs = mx.reshape(logprobs, (-1,))
-
-    def _compute_branch_state(self, branch: Branch) -> None:
-        if branch.cache is not None and branch.next_logprobs is not None:
-            return
-
-        # Root should always be initialized up-front.
-        if branch.parent is None:
-            return
-
-        # Non-recursive: build a path up to the nearest ancestor with a cache, then
-        # initialize forward again.
-        path: list[Branch] = []
-        cur = branch
-        while cur.cache is None and cur.parent is not None:
-            path.append(cur)
-            cur = cur.parent
-
-        if cur.cache is None:
-            return
-
-        for node in reversed(path):
-            parent = node.parent
-            tok = node.token
-            if parent is None or parent.cache is None or tok is None:
-                raise RuntimeError("Branch tree invariant violated while computing state")
-
-            cache = _clone_prompt_cache(parent.cache)
-            token_id = tok.token
-            inputs = mx.array([[token_id]], mx.int32)
-            logits = self.model(inputs, cache=cache)[:, -1, :]
-            logits = logits.astype(mx.float32)
-            logprobs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
-            mx.eval(logprobs)
-            _eval_prompt_cache(cache)
-            node.cache = cache
-            node.next_logprobs = mx.reshape(logprobs, (-1,))
+        root.next_logprobs = self._run_model(cache, self.prompt)
 
 
 def style_for_token_probability(prob: float) -> Style:
@@ -383,9 +323,8 @@ def render_branches(walker: PromptTreeSearch) -> Table:
 
 def render_stats_bar(walker: PromptTreeSearch) -> Table:
     elapsed = (datetime.now() - walker._start).total_seconds() if walker._start else 0.0
-    active, pruned, tokens = walker.stats_snapshot()
-    tps = tokens / elapsed if elapsed > 0 else 0.0
-    left = f"active {active}  pruned {pruned} tps {tps:0.1f}"
+    tps = walker.tokens / elapsed if elapsed > 0 else 0.0
+    left = f"active {walker.active}  pruned {walker.pruned} tps {tps:0.1f}"
     grid = Table.grid(expand=True)
     grid.add_column(ratio=1)
     grid.add_column(justify="right", no_wrap=True)
