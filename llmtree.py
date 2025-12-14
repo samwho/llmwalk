@@ -8,6 +8,10 @@
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
+import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime
@@ -81,6 +85,7 @@ def response_to_output_tokens(
 
     return output_tokens
 
+
 class StopSignal:
     _stop = False
 
@@ -90,6 +95,7 @@ class StopSignal:
     @property
     def stopped(self) -> bool:
         return self._stop
+
 
 class PromptTreeSearch:
     _branch_lookup: dict[int, Branch]
@@ -107,7 +113,6 @@ class PromptTreeSearch:
     _low_watermark: float = 1.0
     _start: datetime | None = None
     _end: datetime | None = None
-
 
     def __init__(self, model: Module, tokenizer: TokenizerWrapper, prompt: list[int], signal: StopSignal) -> None:
         self.model = model
@@ -132,8 +137,6 @@ class PromptTreeSearch:
         decoded = self.tokenizer.decode([token_id], skip_special_tokens=True)  # type: ignore[call-arg]
         self._decoded_token_cache[token_id] = decoded
         return decoded
-
-
 
     @property
     def active(self) -> int:
@@ -176,6 +179,8 @@ class PromptTreeSearch:
                 if self.signal.stopped:
                     break
 
+                to_insert = []
+
                 for r in responses:
                     self.tokens += 1
                     self.prune_branches()
@@ -202,13 +207,18 @@ class PromptTreeSearch:
                             self.branches.add(new_branch)
                             continue
 
-                        uid = self.gen.insert([new_branch.tokens()], max_tokens=1)[0]
-                        self._branch_lookup[uid] = new_branch
-                        self.branches.add(new_branch)
+                        to_insert.append((new_branch, r.prompt_cache))
+
+                inputs = [b.tokens() for b, _ in to_insert]
+                uids = self.gen.insert(inputs, max_tokens=1)
+                for uid, (new_branch, _) in zip(uids, to_insert):
+                    self._branch_lookup[uid] = new_branch
+                    self.branches.add(new_branch)
 
         thread = Thread(target=loop)
         thread.start()
         return thread
+
 
 def style_for_token_probability(prob: float) -> Style:
     # Discrete 10% probability bands for readability.
@@ -320,7 +330,7 @@ def main() -> None:
     model = load_resp[0]
     tokenizer = load_resp[1]
 
-    prompt = tokenizer.apply_chat_template( # type: ignore[call-arg]
+    prompt = tokenizer.apply_chat_template(  # type: ignore[call-arg]
         [{"role": "user", "content": args.prompt}],
         add_generation_prompt=True,
     )
@@ -347,6 +357,60 @@ def main() -> None:
         signal.stop()
 
 
+def _strip_profile_args(argv: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    it = iter(argv)
+    for arg in it:
+        if arg == "--profile":
+            continue
+        if arg == "--profile-native":
+            continue
+        if arg == "--profile-output":
+            next(it, None)
+            continue
+        if arg.startswith("--profile-output="):
+            continue
+        if arg == "--profile-rate":
+            next(it, None)
+            continue
+        if arg.startswith("--profile-rate="):
+            continue
+        cleaned.append(arg)
+    return cleaned
+
+
+def _maybe_run_py_spy_and_exit(parser: argparse.ArgumentParser) -> None:
+    if not args.profile:
+        return
+    if os.environ.get("LLMTREE_PROFILE_CHILD") == "1":
+        return
+
+    py_spy = shutil.which("py-spy")
+    if py_spy is None:
+        parser.error(
+            "--profile requires `py-spy` on PATH (try `brew install py-spy` or `cargo install py-spy`)"
+        )
+
+    child_env = os.environ.copy()
+    child_env["LLMTREE_PROFILE_CHILD"] = "1"
+
+    cmd = [
+        py_spy,
+        "record",
+        "-o",
+        args.profile_output,
+        "--rate",
+        str(args.profile_rate),
+    ]
+    if args.profile_native:
+        cmd.append("--native")
+
+    cmd.append("--")
+    cmd.extend([sys.executable, __file__, *_strip_profile_args(sys.argv[1:])])
+
+    raise SystemExit(subprocess.call(cmd, env=child_env))
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--prompt", default="What is 2+2?", help="Prompt to score")
 parser.add_argument("-m", "--model", default="mlx-community/Llama-3.2-1B-Instruct-4bit")
@@ -361,6 +425,27 @@ parser.add_argument(
     default=0.1,
     help="Seconds between live stats bar updates (<=0 disables)",
 )
+parser.add_argument(
+    "--profile",
+    action="store_true",
+    help="Run under py-spy and write a flamegraph SVG, then exit.",
+)
+parser.add_argument(
+    "--profile-output",
+    default="profile.svg",
+    help="Where to write the flamegraph SVG.",
+)
+parser.add_argument(
+    "--profile-rate",
+    type=int,
+    default=100,
+    help="Sampling rate for py-spy (samples/sec).",
+)
+parser.add_argument(
+    "--profile-native",
+    action="store_true",
+    help="Include native frames (py-spy --native).",
+)
 args = parser.parse_args()
 
 if args.temperature <= 0:
@@ -368,4 +453,5 @@ if args.temperature <= 0:
 if not (0 < args.top_p <= 1):
     parser.error("--top-p must be in the range (0, 1]")
 
+_maybe_run_py_spy_and_exit(parser)
 main()
