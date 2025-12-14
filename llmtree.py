@@ -40,7 +40,6 @@ class Branch:
     probability: float = 1.0
     finish_reason: str | None = None
     cache: list[KVCache] | None = None
-    next_logprobs: mx.array | None = None
 
     def answer_tokens(self) -> list[OutputToken]:
         toks: list[OutputToken] = []
@@ -120,7 +119,6 @@ class PromptTreeSearch:
         root = Branch(parent=None, token=None)
         self.branches = SortedList(key=lambda b: -b.probability)
         self.branches.add(root)
-        self._init_root_branch(root)
         self._push_frontier(root)
 
     def decode_token(self, token_id: int) -> str:
@@ -184,17 +182,17 @@ class PromptTreeSearch:
         if self._low_watermark is not None and branch.probability < self._low_watermark:
             self.pruned += 1
             branch.finish_reason = "pruned"
+            branch.cache = None
             return
 
-        if branch.cache is None or branch.next_logprobs is None:
-            parent = branch.parent
-            tok = branch.token
-            if parent is None or tok is None or parent.cache is None:
-                raise RuntimeError("Branch tree invariant violated while computing state")
-
-            token_id = tok.token
-            branch.cache = _clone_prompt_cache(parent.cache)
-            branch.next_logprobs = self._run_model(branch.cache, [token_id])
+        if branch.token is None: # root branch
+            cache_after = self.model.make_cache() if hasattr(self.model, "make_cache") else []  # type: ignore[assignment]
+            logprobs = self._run_model(cache_after, self.prompt)
+        else:
+            if branch.cache is None:
+                raise RuntimeError("Branch cache missing while expanding leaf")
+            cache_after = _clone_prompt_cache(branch.cache)
+            logprobs = self._run_model(cache_after, [branch.token.token])
 
         # `branch` is no longer a leaf once expanded, so remove it from the
         # display set.
@@ -203,22 +201,37 @@ class PromptTreeSearch:
         new_branches: list[Branch] = []
         frontier_add: list[Branch] = []
         eos_add: list[Branch] = []
-        for tok in _top_tokens_from_logprobs(branch.next_logprobs):
+        for tok in _top_tokens_from_logprobs(logprobs):
             new_prob = branch.probability * tok.prob
-            new_branch = Branch(parent=branch, token=tok, probability=new_prob)
 
             if new_prob < args.min_probability:
                 self.pruned += 1
-                new_branch.finish_reason = "low_probability"
+                new_branch = Branch(
+                    parent=branch,
+                    token=tok,
+                    probability=new_prob,
+                    finish_reason="low_probability",
+                )
                 new_branches.append(new_branch)
                 continue
 
             if tok.token in self.tokenizer.eos_token_ids:
-                new_branch.finish_reason = "eos_token"
+                new_branch = Branch(
+                    parent=branch,
+                    token=tok,
+                    probability=new_prob,
+                    finish_reason="eos_token",
+                )
                 new_branches.append(new_branch)
                 eos_add.append(new_branch)
                 continue
 
+            new_branch = Branch(
+                parent=branch,
+                token=tok,
+                probability=new_prob,
+                cache=cache_after,
+            )
             new_branches.append(new_branch)
             frontier_add.append(new_branch)
 
@@ -232,13 +245,8 @@ class PromptTreeSearch:
             self._update_low_watermark()
         self.tokens += 1
 
-        # The cache is needed for descendants; the logits are not.
-        branch.next_logprobs = None
-
-    def _init_root_branch(self, root: Branch) -> None:
-        cache = self.model.make_cache() if hasattr(self.model, "make_cache") else []  # type: ignore[assignment]
-        root.cache = cache
-        root.next_logprobs = self._run_model(cache, self.prompt)
+        # Descendants carry the cache; this branch can drop it to save memory.
+        branch.cache = None
 
 
 def style_for_token_probability(prob: float) -> Style:
