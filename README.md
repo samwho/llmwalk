@@ -1,8 +1,9 @@
 # llmwalk
 
-Explore the answer-space for any prompt and any MLX-supported model.
+Explore the answer-space for any prompt and any MLX-supported model. See
+<https://huggingface.co/mlx-community/models> for supported models.
 
-TODO: gif
+![Usage example gif](example1.gif)
 
 Instead of sampling from the possible tokens each step, llmwalk branches out
 and completes all of the branches the sampler would consider based on
@@ -22,7 +23,7 @@ to know for sure it has found the `-n` most likely branches.
 ## Options
 
 - `-p, --prompt TEXT`: Prompt to score (wrapped with the model’s chat template).
-- `-m, --model MODEL`: MLX-LM model identifier or path (default: `mlx-community/Llama-3.2-1B-Instruct-4bit`).
+- `-m, --model MODEL`: MLX-LM model identifier or path (default: `mlx-community/Llama-3.2-1B-Instruct-4bit`), supported models can be found at <https://huggingface.co/mlx-community/models>
 - `-n N`: Number of answers to show. The search stops once it has `N` finished answers and no unfinished branch can beat the worst of those `N`.
 - `--min-probability FLOAT`: Any branch whose cumulative probability falls below this is marked finished (`low_probability`) and not expanded further.
 - `--top-k INT`: At each step, expand at most `k` next tokens (highest probability).

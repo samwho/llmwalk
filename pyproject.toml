@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "llmwalk"
-version = "0.1.0"
-description = "Explore likely completions as a prompt tree."
+version = "0.1.1"
+description = "Explore the answer-space for any prompt and any MLX-supported model."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
