@@ -141,7 +141,6 @@ class PromptTreeSearch:
         self.prompt = prompt
         self.signal = signal
         self._lock = Lock()
-        self._decoded_token_cache = {}
         self._frontier = []
         self._finished_eos = SortedList(key=lambda b: -b.probability)
 
@@ -151,21 +150,12 @@ class PromptTreeSearch:
         self._push_frontier(root)
 
     def decode_token(self, token_id: int) -> str:
-        cached = self._decoded_token_cache.get(token_id)
-        if cached is not None:
-            return cached
-        decoded = self.tokenizer.decode([token_id], skip_special_tokens=True)  # type: ignore[call-arg]
-        self._decoded_token_cache[token_id] = decoded
-        return decoded
+        return self.tokenizer.decode([token_id], skip_special_tokens=True)  # type: ignore[call-arg]
 
     @property
     def active(self) -> int:
         with self._lock:
             return len(self._frontier)
-
-    @property
-    def queued(self) -> int:
-        return 0
 
     @property
     def n_finished(self) -> int:
@@ -281,17 +271,7 @@ class PromptTreeSearch:
         return thread
 
     def _ensure_branch_state(self, branch: Branch) -> None:
-        if branch.next_logprobs is not None and (not args.prompt_cache or branch.cache is not None):
-            return
-
-        if not args.prompt_cache:
-            toks = self.prompt + [t.token for t in branch.answer_tokens()]
-            inputs = mx.array([toks], mx.int32)
-            logits = self.model(inputs)[:, -1, :]
-            logits = logits.astype(mx.float32)
-            logprobs = logits - mx.logsumexp(logits, axis=-1, keepdims=True)
-            mx.eval(logprobs)
-            branch.next_logprobs = mx.reshape(logprobs, (-1,))
+        if branch.next_logprobs is not None and (branch.cache is not None):
             return
 
         if branch.parent is None:
@@ -410,7 +390,7 @@ def render_stats_bar(walker: PromptTreeSearch) -> Table:
     elapsed = (datetime.now() - walker._start).total_seconds() if walker._start else 0.0
     active, pruned, tokens = walker.stats_snapshot()
     tps = tokens / elapsed if elapsed > 0 else 0.0
-    left = f"active {active}  queued {walker.queued}  pruned {pruned} tps {tps:0.1f}"
+    left = f"active {active}  pruned {pruned} tps {tps:0.1f}"
     grid = Table.grid(expand=True)
     grid.add_column(ratio=1)
     grid.add_column(justify="right", no_wrap=True)
@@ -472,12 +452,6 @@ parser.add_argument("--min-probability", type=float, default=0.0001)
 parser.add_argument("--top-k", dest="top_k", default=50, type=int)
 parser.add_argument("--top-p", dest="top_p", default=1.0, type=float, help="Nucleus sampling threshold (0 < p <= 1)")
 parser.add_argument("--temperature", type=float, default=1.0, help="Softmax temperature (> 0)")
-parser.add_argument(
-    "--prompt-cache",
-    action=argparse.BooleanOptionalAction,
-    default=True,
-    help="Cache KV states for prompt/branches (disable to reduce memory use; slower).",
-)
 parser.add_argument(
     "--stats-interval",
     type=float,
