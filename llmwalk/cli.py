@@ -7,14 +7,24 @@ import sys
 if "--offline" in sys.argv:
     os.environ["HF_HUB_OFFLINE"] = "1"
 
+# Metal GPU trace capture requires this to be set at process start.
+# See https://ml-explore.github.io/mlx/build/html/dev/metal_debugger.html
+if any(
+    arg == "--metal-capture" or arg.startswith("--metal-capture=") for arg in sys.argv
+):
+    os.environ.setdefault("MTL_CAPTURE_ENABLED", "1")
+
 import argparse
+import cProfile
 import csv
 import io
 import json
+import pstats
 import time
 from datetime import datetime
 from importlib.metadata import version as pkg_version
 
+import mlx.core as mx
 from mlx_lm import load
 from rich.console import Console, Group
 from rich.live import Live
@@ -223,34 +233,101 @@ def run() -> None:
 
     walker = PromptTreeSearch(model, tokenizer, prompt, config)
 
-    if args.format:
-        # Machine-readable output: no interactive display
+    profiler: cProfile.Profile | None = None
+    if args.cprofile is not None:
+        profiler = cProfile.Profile()
+
+    capture_enabled = False
+    if args.metal_capture is not None and hasattr(mx, "metal"):
+        start_capture = getattr(mx.metal, "start_capture", None)
+        if callable(start_capture):
+            try:
+                start_capture(args.metal_capture)
+                capture_enabled = True
+            except Exception as exc:
+                print(
+                    f"Warning: failed to start Metal capture: {exc}",
+                    file=sys.stderr,
+                )
+
+    steps = 0
+
+    def do_step_loop() -> None:
+        nonlocal steps
         try:
             while not walker.should_stop():
                 walker.step()
+                steps += 1
+                if args.max_steps > 0 and steps >= args.max_steps:
+                    walker.stop()
+                    break
         except KeyboardInterrupt:
             walker.stop()
 
-        if args.format == "json":
-            print(format_results_json(walker))
-        elif args.format == "csv":
-            print(format_results_csv(walker), end="")
-    else:
-        # Interactive display
-        console = Console()
-        try:
-            with Live(console=console, transient=False) as live:
-                interval = max(0.1, args.stats_interval)
-                next_render = time.monotonic()
-                live.update(render_view(walker))
-                while not walker.should_stop():
-                    walker.step()
-                    if args.stats_interval > 0 and time.monotonic() >= next_render:
-                        live.update(render_view(walker))
-                        next_render = time.monotonic() + interval
-                live.update(render_view(walker))
-        except KeyboardInterrupt:
-            walker.stop()
+    try:
+        if args.format:
+            # Machine-readable output: no interactive display
+            try:
+                if profiler is not None:
+                    profiler.enable()
+                do_step_loop()
+            finally:
+                if profiler is not None:
+                    profiler.disable()
+
+            if args.format == "json":
+                print(format_results_json(walker))
+            elif args.format == "csv":
+                print(format_results_csv(walker), end="")
+        else:
+            # Interactive display
+            console = Console()
+            try:
+                with Live(console=console, transient=False) as live:
+                    interval = max(0.1, args.stats_interval)
+                    next_render = time.monotonic()
+                    live.update(render_view(walker))
+                    try:
+                        if profiler is not None:
+                            profiler.enable()
+                        while not walker.should_stop():
+                            walker.step()
+                            steps += 1
+                            if args.max_steps > 0 and steps >= args.max_steps:
+                                walker.stop()
+                                break
+                            if (
+                                args.stats_interval > 0
+                                and time.monotonic() >= next_render
+                            ):
+                                live.update(render_view(walker))
+                                next_render = time.monotonic() + interval
+                    finally:
+                        if profiler is not None:
+                            profiler.disable()
+                    live.update(render_view(walker))
+            except KeyboardInterrupt:
+                walker.stop()
+    finally:
+        if capture_enabled and hasattr(mx, "metal"):
+            stop_capture = getattr(mx.metal, "stop_capture", None)
+            if callable(stop_capture):
+                try:
+                    stop_capture()
+                except Exception as exc:
+                    print(
+                        f"Warning: failed to stop Metal capture: {exc}",
+                        file=sys.stderr,
+                    )
+
+    if profiler is not None:
+        if args.cprofile == "-":
+            stream = io.StringIO()
+            stats = pstats.Stats(profiler, stream=stream)
+            stats.strip_dirs().sort_stats("cumtime").print_stats(50)
+            print(stream.getvalue(), file=sys.stderr, end="")
+        else:
+            profiler.dump_stats(args.cprofile)
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -312,6 +389,22 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="Output format for machine-readable output (disables interactive display)",
     )
     parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=0,
+        help="Stop after this many search steps (0 = no limit). Useful for profiling and quick runs.",
+    )
+    parser.add_argument(
+        "--cprofile",
+        default=None,
+        help="Write a Python cProfile to this path (use '-' to print top stats to stderr).",
+    )
+    parser.add_argument(
+        "--metal-capture",
+        default=None,
+        help="Write a Metal capture trace to this path (macOS only).",
+    )
+    parser.add_argument(
         "--offline",
         action="store_true",
         help="Run in offline mode (skip HuggingFace Hub network requests)",
@@ -335,6 +428,8 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         parser.error("--temperature must be > 0")
     if not (0 < parsed.top_p <= 1):
         parser.error("--top-p must be in the range (0, 1]")
+    if parsed.max_steps < 0:
+        parser.error("--max-steps must be >= 0")
 
     # If prompt is a file path, read the file contents
     from pathlib import Path
