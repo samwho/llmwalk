@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+# Check for --offline flag before any HuggingFace imports
+import os
+import sys
+
+if "--offline" in sys.argv:
+    os.environ["HF_HUB_OFFLINE"] = "1"
+
 import argparse
 import csv
 import io
 import json
-import sys
 import time
 from datetime import datetime
 
@@ -218,35 +224,62 @@ def run() -> None:
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-p", "--prompt", default="What is 2+2?", help="Prompt to score"
+        "-p", "--prompt", default="What is 2+2?", help="The prompt to walk."
     )
     parser.add_argument(
-        "-m", "--model", default="mlx-community/Llama-3.2-1B-Instruct-4bit"
+        "-m",
+        "--model",
+        default="mlx-community/Llama-3.2-1B-Instruct-4bit",
+        help="Which model to use. Must be an mlx-community/ model from HuggingFace.",
     )
-    parser.add_argument("-n", default=10, type=int, help="Number of answers to show")
-    parser.add_argument("--min-probability", type=float, default=0.0001)
-    parser.add_argument("--top-k", dest="top_k", default=50, type=int)
+    parser.add_argument(
+        "-n",
+        default=10,
+        type=int,
+        help="The top N answers to track. Search will stop after the top N answers have been found, so increasing this can increase runtime.",
+    )
+    parser.add_argument(
+        "--min-probability",
+        type=float,
+        default=0.0001,
+        help="A minimum probability threshold for branches. If a branch becomes less likely than this, we stop walking it. Lowering this can increase runtime.",
+    )
+    parser.add_argument(
+        "--top-k",
+        dest="top_k",
+        default=50,
+        type=int,
+        help="How many tokens to branch on at each step. Increasing this will increase runtime.",
+    )
     parser.add_argument(
         "--top-p",
         dest="top_p",
         default=1.0,
         type=float,
-        help="Nucleus sampling threshold (0 < p <= 1)",
+        help="Like --top-k, this will limit the tokens branched on at each step, but by cumulative probability instead of a static number. Decreasing this can reduce runtime.",
     )
     parser.add_argument(
-        "--temperature", type=float, default=1.0, help="Softmax temperature (> 0)"
+        "--temperature",
+        type=float,
+        default=1.0,
+        help='Sampling temperature, decreasing this will "sharpen" the token probabilities and make high-probability tokens more likely. Increasing it will make the distribution more uniform, making less likely tokens more likely.',
     )
     parser.add_argument(
         "--stats-interval",
         type=float,
         default=0.1,
-        help="Seconds between live stats bar updates (<=0 disables)",
+        help="In interactive mode, i.e. no --format, this will control how often the table is updated.",
     )
     parser.add_argument(
         "--format",
         choices=["csv", "json"],
         default=None,
         help="Output format for machine-readable output (disables interactive display)",
+    )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Run in offline mode (skip HuggingFace Hub network requests)",
     )
 
     raw = list(sys.argv[1:] if argv is None else argv)
