@@ -1,0 +1,196 @@
+[
+  {
+    "answer": "Blue",
+    "finish_reason": "eos_token",
+    "probability": 0.635196369415354,
+    "tokens": [
+      {
+        "probability": 0.9809126853942871,
+        "token": "Blue"
+      },
+      {
+        "probability": 0.647556483745575,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Blue.",
+    "finish_reason": "eos_token",
+    "probability": 0.34531273753157676,
+    "tokens": [
+      {
+        "probability": 0.9809126853942871,
+        "token": "Blue"
+      },
+      {
+        "probability": 0.3520703613758087,
+        "token": "."
+      },
+      {
+        "probability": 0.9998912811279297,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Green.",
+    "finish_reason": "eos_token",
+    "probability": 0.003484278351332732,
+    "tokens": [
+      {
+        "probability": 0.006713419687002897,
+        "token": "Green"
+      },
+      {
+        "probability": 0.5190832018852234,
+        "token": "."
+      },
+      {
+        "probability": 0.9998435974121094,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Green",
+    "finish_reason": "eos_token",
+    "probability": 0.003222934763911875,
+    "tokens": [
+      {
+        "probability": 0.006713419687002897,
+        "token": "Green"
+      },
+      {
+        "probability": 0.480073481798172,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Purple",
+    "finish_reason": "eos_token",
+    "probability": 0.002386740800921938,
+    "tokens": [
+      {
+        "probability": 0.0037075025029480457,
+        "token": "Purple"
+      },
+      {
+        "probability": 0.6437597274780273,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Purple.",
+    "finish_reason": "eos_token",
+    "probability": 0.0013178697095919108,
+    "tokens": [
+      {
+        "probability": 0.0037075025029480457,
+        "token": "Purple"
+      },
+      {
+        "probability": 0.3555178940296173,
+        "token": "."
+      },
+      {
+        "probability": 0.9998378157615662,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Black.",
+    "finish_reason": "eos_token",
+    "probability": 0.0006308679554235796,
+    "tokens": [
+      {
+        "probability": 0.0008806089754216373,
+        "token": "Black"
+      },
+      {
+        "probability": 0.7165253758430481,
+        "token": "."
+      },
+      {
+        "probability": 0.9998245239257812,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Cerulean.",
+    "finish_reason": "eos_token",
+    "probability": 0.0005309523033367823,
+    "tokens": [
+      {
+        "probability": 0.0022841258905828,
+        "token": "C"
+      },
+      {
+        "probability": 0.46754589676856995,
+        "token": "erule"
+      },
+      {
+        "probability": 0.9744827747344971,
+        "token": "an"
+      },
+      {
+        "probability": 0.5103644132614136,
+        "token": "."
+      },
+      {
+        "probability": 0.9996700286865234,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Crimson",
+    "finish_reason": "eos_token",
+    "probability": 0.0005063532908255121,
+    "tokens": [
+      {
+        "probability": 0.0022841258905828,
+        "token": "C"
+      },
+      {
+        "probability": 0.36412513256073,
+        "token": "rim"
+      },
+      {
+        "probability": 0.9973332285881042,
+        "token": "son"
+      },
+      {
+        "probability": 0.6104395389556885,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Cerulean",
+    "finish_reason": "eos_token",
+    "probability": 0.0004989481858168582,
+    "tokens": [
+      {
+        "probability": 0.0022841258905828,
+        "token": "C"
+      },
+      {
+        "probability": 0.46754589676856995,
+        "token": "erule"
+      },
+      {
+        "probability": 0.9744827747344971,
+        "token": "an"
+      },
+      {
+        "probability": 0.4794430136680603,
+        "token": ""
+      }
+    ]
+  }
+]

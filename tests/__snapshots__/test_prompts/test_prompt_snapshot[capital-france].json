@@ -1,0 +1,196 @@
+[
+  {
+    "answer": "Paris",
+    "finish_reason": "eos_token",
+    "probability": 0.5718503690637391,
+    "tokens": [
+      {
+        "probability": 0.9909923076629639,
+        "token": "Paris"
+      },
+      {
+        "probability": 0.5770482420921326,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Paris.",
+    "finish_reason": "eos_token",
+    "probability": 0.41812413077006155,
+    "tokens": [
+      {
+        "probability": 0.9909923076629639,
+        "token": "Paris"
+      },
+      {
+        "probability": 0.4221774935722351,
+        "token": "."
+      },
+      {
+        "probability": 0.9994012117385864,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "PARIS",
+    "finish_reason": "eos_token",
+    "probability": 0.0009833144773457342,
+    "tokens": [
+      {
+        "probability": 0.0014216693816706538,
+        "token": "PAR"
+      },
+      {
+        "probability": 0.9988924264907837,
+        "token": "IS"
+      },
+      {
+        "probability": 0.6924287676811218,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Berlin",
+    "finish_reason": "eos_token",
+    "probability": 0.0005484726615021737,
+    "tokens": [
+      {
+        "probability": 0.0010160213569179177,
+        "token": "Berlin"
+      },
+      {
+        "probability": 0.5398239493370056,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Lyons.",
+    "finish_reason": "eos_token",
+    "probability": 0.0005482623225742251,
+    "tokens": [
+      {
+        "probability": 0.0007204670109786093,
+        "token": "Ly"
+      },
+      {
+        "probability": 0.9897059798240662,
+        "token": "ons"
+      },
+      {
+        "probability": 0.7721360325813293,
+        "token": "."
+      },
+      {
+        "probability": 0.9958049654960632,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Berlin.",
+    "finish_reason": "eos_token",
+    "probability": 0.00046031066398022043,
+    "tokens": [
+      {
+        "probability": 0.0010160213569179177,
+        "token": "Berlin"
+      },
+      {
+        "probability": 0.45457732677459717,
+        "token": "."
+      },
+      {
+        "probability": 0.9966448545455933,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Paris.",
+    "finish_reason": "eos_token",
+    "probability": 0.00045526637840570837,
+    "tokens": [
+      {
+        "probability": 0.0008037390070967376,
+        "token": "Par"
+      },
+      {
+        "probability": 0.9888813495635986,
+        "token": "is"
+      },
+      {
+        "probability": 0.5732787847518921,
+        "token": "."
+      },
+      {
+        "probability": 0.9991725087165833,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "PARIS.",
+    "finish_reason": "eos_token",
+    "probability": 0.0004361792691621435,
+    "tokens": [
+      {
+        "probability": 0.0014216693816706538,
+        "token": "PAR"
+      },
+      {
+        "probability": 0.9988924264907837,
+        "token": "IS"
+      },
+      {
+        "probability": 0.30726343393325806,
+        "token": "."
+      },
+      {
+        "probability": 0.9996243119239807,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Lyon.",
+    "finish_reason": "eos_token",
+    "probability": 0.00040703238643157894,
+    "tokens": [
+      {
+        "probability": 0.0007491671130992472,
+        "token": "L"
+      },
+      {
+        "probability": 0.9958468079566956,
+        "token": "yon"
+      },
+      {
+        "probability": 0.5462580323219299,
+        "token": "."
+      },
+      {
+        "probability": 0.9987571239471436,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": " Paris",
+    "finish_reason": "eos_token",
+    "probability": 0.0003723068972265181,
+    "tokens": [
+      {
+        "probability": 0.00045795668847858906,
+        "token": " Paris"
+      },
+      {
+        "probability": 0.8129740357398987,
+        "token": ""
+      }
+    ]
+  }
+]

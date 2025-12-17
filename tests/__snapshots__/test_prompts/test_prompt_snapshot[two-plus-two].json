@@ -1,0 +1,176 @@
+[
+  {
+    "answer": "Four.",
+    "finish_reason": "eos_token",
+    "probability": 0.4089153564667007,
+    "tokens": [
+      {
+        "probability": 0.585510790348053,
+        "token": "Four"
+      },
+      {
+        "probability": 0.6984281539916992,
+        "token": "."
+      },
+      {
+        "probability": 0.9999465346336365,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Four",
+    "finish_reason": "eos_token",
+    "probability": 0.1758817289022545,
+    "tokens": [
+      {
+        "probability": 0.585510790348053,
+        "token": "Four"
+      },
+      {
+        "probability": 0.30039024353027344,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "4",
+    "finish_reason": "eos_token",
+    "probability": 0.09540861076300544,
+    "tokens": [
+      {
+        "probability": 0.1412610411643982,
+        "token": "4"
+      },
+      {
+        "probability": 0.6754063963890076,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Zero.",
+    "finish_reason": "eos_token",
+    "probability": 0.05608451429454411,
+    "tokens": [
+      {
+        "probability": 0.10662943869829178,
+        "token": "Zero"
+      },
+      {
+        "probability": 0.5260862708091736,
+        "token": "."
+      },
+      {
+        "probability": 0.9997901916503906,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Zero",
+    "finish_reason": "eos_token",
+    "probability": 0.050284383655605946,
+    "tokens": [
+      {
+        "probability": 0.10662943869829178,
+        "token": "Zero"
+      },
+      {
+        "probability": 0.4715806841850281,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Five.",
+    "finish_reason": "eos_token",
+    "probability": 0.04915862590223108,
+    "tokens": [
+      {
+        "probability": 0.07680229842662811,
+        "token": "Five"
+      },
+      {
+        "probability": 0.6401001214981079,
+        "token": "."
+      },
+      {
+        "probability": 0.9999484419822693,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "4.",
+    "finish_reason": "eos_token",
+    "probability": 0.04577047637063797,
+    "tokens": [
+      {
+        "probability": 0.1412610411643982,
+        "token": "4"
+      },
+      {
+        "probability": 0.3240635097026825,
+        "token": "."
+      },
+      {
+        "probability": 0.9998455047607422,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Five",
+    "finish_reason": "eos_token",
+    "probability": 0.02757691170717891,
+    "tokens": [
+      {
+        "probability": 0.07680229842662811,
+        "token": "Five"
+      },
+      {
+        "probability": 0.35906362533569336,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Two.",
+    "finish_reason": "eos_token",
+    "probability": 0.014566393963525638,
+    "tokens": [
+      {
+        "probability": 0.023792244493961334,
+        "token": "Two"
+      },
+      {
+        "probability": 0.6122632622718811,
+        "token": "."
+      },
+      {
+        "probability": 0.9999503493309021,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "One.",
+    "finish_reason": "eos_token",
+    "probability": 0.011707752641877359,
+    "tokens": [
+      {
+        "probability": 0.01398673839867115,
+        "token": "One"
+      },
+      {
+        "probability": 0.8370721340179443,
+        "token": "."
+      },
+      {
+        "probability": 0.9999866485595703,
+        "token": ""
+      }
+    ]
+  }
+]

@@ -1,0 +1,220 @@
+[
+  {
+    "answer": "Jupiter.",
+    "finish_reason": "eos_token",
+    "probability": 0.7771506816745445,
+    "tokens": [
+      {
+        "probability": 0.8974856734275818,
+        "token": "J"
+      },
+      {
+        "probability": 0.9881630539894104,
+        "token": "upiter"
+      },
+      {
+        "probability": 0.8763476610183716,
+        "token": "."
+      },
+      {
+        "probability": 0.9999370574951172,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Jupiter",
+    "finish_reason": "eos_token",
+    "probability": 0.10852138481931396,
+    "tokens": [
+      {
+        "probability": 0.8974856734275818,
+        "token": "J"
+      },
+      {
+        "probability": 0.9881630539894104,
+        "token": "upiter"
+      },
+      {
+        "probability": 0.1223655566573143,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Earth.",
+    "finish_reason": "eos_token",
+    "probability": 0.033203062912813004,
+    "tokens": [
+      {
+        "probability": 0.04005374759435654,
+        "token": "Earth"
+      },
+      {
+        "probability": 0.8290749788284302,
+        "token": "."
+      },
+      {
+        "probability": 0.9998645782470703,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Mars.",
+    "finish_reason": "eos_token",
+    "probability": 0.011342154240062654,
+    "tokens": [
+      {
+        "probability": 0.013003547675907612,
+        "token": "M"
+      },
+      {
+        "probability": 0.9317061305046082,
+        "token": "ars"
+      },
+      {
+        "probability": 0.9362611770629883,
+        "token": "."
+      },
+      {
+        "probability": 0.9999026656150818,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Earth",
+    "finish_reason": "eos_token",
+    "probability": 0.006641929780902611,
+    "tokens": [
+      {
+        "probability": 0.04005374759435654,
+        "token": "Earth"
+      },
+      {
+        "probability": 0.16582542657852173,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Saturn.",
+    "finish_reason": "eos_token",
+    "probability": 0.005045709425175339,
+    "tokens": [
+      {
+        "probability": 0.005420684814453125,
+        "token": "Sat"
+      },
+      {
+        "probability": 0.9999847412109375,
+        "token": "urn"
+      },
+      {
+        "probability": 0.9308801293373108,
+        "token": "."
+      },
+      {
+        "probability": 0.9999561309814453,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Ceres.",
+    "finish_reason": "eos_token",
+    "probability": 0.004049187004559296,
+    "tokens": [
+      {
+        "probability": 0.01450650580227375,
+        "token": "C"
+      },
+      {
+        "probability": 0.3259560763835907,
+        "token": "eres"
+      },
+      {
+        "probability": 0.856715202331543,
+        "token": "."
+      },
+      {
+        "probability": 0.9995613694190979,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "jupiter.",
+    "finish_reason": "eos_token",
+    "probability": 0.0033362447473272066,
+    "tokens": [
+      {
+        "probability": 0.005506048444658518,
+        "token": "j"
+      },
+      {
+        "probability": 0.9742040634155273,
+        "token": "upiter"
+      },
+      {
+        "probability": 0.6220129728317261,
+        "token": "."
+      },
+      {
+        "probability": 0.9999274611473083,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "Pluto.",
+    "finish_reason": "eos_token",
+    "probability": 0.003281458923314235,
+    "tokens": [
+      {
+        "probability": 0.004355642944574356,
+        "token": "Pl"
+      },
+      {
+        "probability": 0.9977993965148926,
+        "token": "uto"
+      },
+      {
+        "probability": 0.7561350464820862,
+        "token": "."
+      },
+      {
+        "probability": 0.9985552430152893,
+        "token": ""
+      }
+    ]
+  },
+  {
+    "answer": "JUPITER.",
+    "finish_reason": "eos_token",
+    "probability": 0.002553609677994426,
+    "tokens": [
+      {
+        "probability": 0.8974856734275818,
+        "token": "J"
+      },
+      {
+        "probability": 0.004909441340714693,
+        "token": "UP"
+      },
+      {
+        "probability": 0.9913231730461121,
+        "token": "ITER"
+      },
+      {
+        "probability": 0.5846582055091858,
+        "token": "."
+      },
+      {
+        "probability": 0.9999484419822693,
+        "token": ""
+      }
+    ]
+  }
+]

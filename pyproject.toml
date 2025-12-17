@@ -15,6 +15,12 @@ dependencies = [
   "transformers===4.57.3",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "syrupy>=4.0.0",
+]
+
 [project.scripts]
 llmwalk = "llmwalk.cli:main"
 
