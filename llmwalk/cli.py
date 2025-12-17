@@ -13,6 +13,7 @@ import io
 import json
 import time
 from datetime import datetime
+from importlib.metadata import version as pkg_version
 
 from mlx_lm import load
 from rich.console import Console, Group
@@ -75,8 +76,7 @@ _PROBABILITY_LEGEND = render_probability_legend()
 
 
 def render_branches(walker: PromptTreeSearch) -> Table:
-    table = Table(expand=True)
-    table.add_column("Fin", justify="center", no_wrap=True, width=3)
+    table = Table(expand=True, show_header=False, show_edge=False)
     table.add_column("Prob.", justify="right", no_wrap=True, width=8)
     table.add_column("Answer", ratio=1)
 
@@ -92,19 +92,22 @@ def render_branches(walker: PromptTreeSearch) -> Table:
             piece = walker.decode_token(tok.token)
             if not piece:
                 continue
+            piece = piece.replace("\n", "\\n")
             answer_text.append(piece, style=style_for_token_probability(tok.prob))
-        probability_text = f"{branch.probability * 100:6.2f}%"
+
         status: Text
         if branch.finish_reason == "eos_token":
             status = Text("✓", style="green")
         elif branch.finish_reason == "low_probability":
-            status = Text("✓", style="yellow")
+            status = Text("?", style="yellow")
         elif branch.finish_reason == "pruned":
-            status = Text("✓", style="dim")
+            status = Text("-", style="dim")
         else:
-            status = Text("")
+            status = Text(" ")
 
-        table.add_row(status, probability_text, answer_text)
+        probability_text = Text.assemble(status, f"{branch.probability * 100:6.2f}%")
+
+        table.add_row(probability_text, answer_text)
 
     return table
 
@@ -112,7 +115,7 @@ def render_branches(walker: PromptTreeSearch) -> Table:
 def render_stats_bar(walker: PromptTreeSearch) -> Table:
     elapsed = (datetime.now() - walker._start).total_seconds() if walker._start else 0.0
     tps = walker.tokens / elapsed if elapsed > 0 else 0.0
-    left = f"active {walker.active}  pruned {walker.pruned} tps {tps:0.1f}"
+    left = f"frontier {walker.active} pruned {walker.pruned} tps {tps:0.1f}"
     grid = Table.grid(expand=True)
     grid.add_column(ratio=1)
     grid.add_column(justify="right", no_wrap=True)
@@ -127,6 +130,8 @@ def render_stats_bar(walker: PromptTreeSearch) -> Table:
 
 
 def render_view(walker: PromptTreeSearch) -> Group:
+    if args.minimal:
+        return Group(render_branches(walker))
     return Group(
         _PROBABILITY_LEGEND,
         render_branches(walker),
@@ -280,6 +285,16 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         "--offline",
         action="store_true",
         help="Run in offline mode (skip HuggingFace Hub network requests)",
+    )
+    parser.add_argument(
+        "--minimal",
+        action="store_true",
+        help="Hide the legend and stats bar for a cleaner display",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {pkg_version('llmwalk')}",
     )
 
     raw = list(sys.argv[1:] if argv is None else argv)

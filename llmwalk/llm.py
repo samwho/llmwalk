@@ -173,6 +173,7 @@ class PromptTreeSearch:
         return self.tokenizer.decode([token_id], skip_special_tokens=True)  # type: ignore[call-arg]
 
     def _run_model(self, cache: list[KVCache] | None, input_ids: list[int]) -> mx.array:
+        self.tokens += 1
         inputs = mx.array([input_ids], mx.int32)
         logits = self.model(inputs, cache=cache)[:, -1, :]
         logits = logits.astype(mx.float32)
@@ -285,6 +286,5 @@ class PromptTreeSearch:
             self._finished_eos.add(b)
         if eos_add:
             self._update_low_watermark()
-        self.tokens += 1
 
         branch.cache = None
