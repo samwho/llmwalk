@@ -229,7 +229,10 @@ def run() -> None:
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-p", "--prompt", default="What is 2+2?", help="The prompt to walk."
+        "-p",
+        "--prompt",
+        default="What is 2+2?",
+        help="The prompt to walk. Can be a file path, in which case the file contents will be used.",
     )
     parser.add_argument(
         "-m",
@@ -305,6 +308,13 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         parser.error("--temperature must be > 0")
     if not (0 < parsed.top_p <= 1):
         parser.error("--top-p must be in the range (0, 1]")
+
+    # If prompt is a file path, read the file contents
+    from pathlib import Path
+
+    prompt_path = Path(parsed.prompt)
+    if prompt_path.is_file():
+        parsed.prompt = prompt_path.read_text()
 
     return parsed
 
