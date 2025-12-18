@@ -4,6 +4,8 @@ from __future__ import annotations
 import os
 import sys
 
+from mlx_lm.tokenizer_utils import SPMStreamingDetokenizer
+
 if "--offline" in sys.argv:
     os.environ["HF_HUB_OFFLINE"] = "1"
 
@@ -85,17 +87,6 @@ def render_probability_legend() -> Text:
 _PROBABILITY_LEGEND = render_probability_legend()
 
 
-def detokenize_answer(walker: PromptTreeSearch, token_ids: list[int]) -> str:
-    detokenizer = walker.tokenizer.detokenizer
-    detokenizer.reset()
-    for token_id in token_ids:
-        if token_id in walker.tokenizer.eos_token_ids:
-            continue
-        detokenizer.add_token(token_id)
-    detokenizer.finalize()
-    return detokenizer.text
-
-
 def render_branches(walker: PromptTreeSearch) -> Table:
     table = Table(expand=True, show_header=False, show_edge=False)
     table.add_column("Prob.", justify="right", no_wrap=True, width=8)
@@ -109,24 +100,21 @@ def render_branches(walker: PromptTreeSearch) -> Table:
 
         branch = branches[i]
         answer_text = Text()
-        detokenizer = walker.tokenizer.detokenizer
-        detokenizer.reset()
-        last_style: Style | None = None
-        for tok in branch.answer_tokens():
-            if tok.token in walker.tokenizer.eos_token_ids:
-                continue
-            detokenizer.add_token(tok.token)
-            piece = detokenizer.last_segment
-            if not piece:
-                continue
-            piece = piece.replace("\n", "\\n")
-            last_style = style_for_token_probability(tok.prob)
-            answer_text.append(piece, style=last_style)
-        detokenizer.finalize()
-        piece = detokenizer.last_segment
-        if piece:
-            piece = piece.replace("\n", "\\n")
-            answer_text.append(piece, style=last_style)
+
+        if walker.is_sentencepiece_model():
+            answer_text = Text(
+                walker.tokenizer.decode([tok.token for tok in branch.answer_tokens()])  # type: ignore[call-arg]
+            )
+        else:
+            for tok in branch.answer_tokens():
+                piece = walker.tokenizer.decode(  # type: ignore[call-arg]
+                    [tok.token],
+                    skip_special_tokens=True,
+                )
+                if not piece:
+                    continue
+                piece = piece.replace("\n", "\\n")
+                answer_text.append(piece, style=style_for_token_probability(tok.prob))
 
         status: Text
         if branch.finish_reason == "eos_token":
@@ -180,12 +168,12 @@ def format_results_json(walker: PromptTreeSearch) -> str:
         for tok in branch.answer_tokens():
             tokens.append(
                 {
-                    "token": walker.decode_token(tok.token),
+                    "token": walker.tokenizer.decode([tok.token]),  # type: ignore[call-arg]
                     "probability": tok.prob,
                 }
             )
-        answer_text = detokenize_answer(
-            walker, [tok.token for tok in branch.answer_tokens()]
+        answer_text = walker.tokenizer.decode(  # type: ignore[attr-defined]
+            [tok.token for tok in branch.answer_tokens()]
         )
         results.append(
             {
@@ -204,8 +192,8 @@ def format_results_csv(walker: PromptTreeSearch) -> str:
     writer = csv.writer(output)
     writer.writerow(["answer", "probability", "finish_reason"])
     for branch in branches:
-        answer_text = detokenize_answer(
-            walker, [tok.token for tok in branch.answer_tokens()]
+        answer_text = walker.tokenizer.decode(  # type: ignore[attr-defined]
+            [tok.token for tok in branch.answer_tokens()]
         )
         writer.writerow([answer_text, branch.probability, branch.finish_reason or ""])
     return output.getvalue()
