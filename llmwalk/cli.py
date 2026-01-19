@@ -4,8 +4,6 @@ from __future__ import annotations
 import os
 import sys
 
-from mlx_lm.tokenizer_utils import SPMStreamingDetokenizer
-
 if "--offline" in sys.argv:
     os.environ["HF_HUB_OFFLINE"] = "1"
 
@@ -200,7 +198,7 @@ def format_results_csv(walker: PromptTreeSearch) -> str:
 
 
 def run() -> None:
-    load_resp = load(args.model)
+    load_resp = load(args.model, revision=args.revision)
     model = load_resp[0]
     tokenizer = load_resp[1]
 
@@ -331,6 +329,11 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
         "--model",
         default="mlx-community/Llama-3.2-1B-Instruct-4bit",
         help="Which model to use. Must be an mlx-community/ model from HuggingFace.",
+    )
+    parser.add_argument(
+        "--revision",
+        default=None,
+        help="Optional HuggingFace revision (branch, tag, or commit hash) for the model.",
     )
     parser.add_argument(
         "-n",

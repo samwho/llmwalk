@@ -1,0 +1,59 @@
+[
+  {
+    "answer": "Jupiter<|im_end|>",
+    "finish_reason": "eos_token",
+    "probability": 0.29212548271977284,
+    "tokens": [
+      {
+        "probability": 0.3357563018798828,
+        "token": "J"
+      },
+      {
+        "probability": 0.9898324608802795,
+        "token": "upiter"
+      },
+      {
+        "probability": 0.8789892792701721,
+        "token": "<|im_end|>"
+      }
+    ]
+  },
+  {
+    "answer": "Mars<|im_end|>",
+    "finish_reason": "eos_token",
+    "probability": 0.08622310904329966,
+    "tokens": [
+      {
+        "probability": 0.10900411754846573,
+        "token": "Mars"
+      },
+      {
+        "probability": 0.7910078167915344,
+        "token": "<|im_end|>"
+      }
+    ]
+  },
+  {
+    "answer": "Neptune<|im_end|>",
+    "finish_reason": "eos_token",
+    "probability": 0.07601937969572163,
+    "tokens": [
+      {
+        "probability": 0.12351784855127335,
+        "token": "Ne"
+      },
+      {
+        "probability": 0.9890643954277039,
+        "token": "pt"
+      },
+      {
+        "probability": 0.702767014503479,
+        "token": "une"
+      },
+      {
+        "probability": 0.8854390382766724,
+        "token": "<|im_end|>"
+      }
+    ]
+  }
+]

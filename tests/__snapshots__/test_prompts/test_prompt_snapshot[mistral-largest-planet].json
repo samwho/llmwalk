@@ -1,8 +1,8 @@
 [
   {
-    "answer": "Jupiter",
+    "answer": "Jupiter</s>",
     "finish_reason": "eos_token",
-    "probability": 0.9310452838409994,
+    "probability": 0.930035424092406,
     "tokens": [
       {
         "probability": 0.9999580383300781,
@@ -13,8 +13,8 @@
         "token": "upiter"
       },
       {
-        "probability": 0.9313400983810425,
-        "token": ""
+        "probability": 0.9303299188613892,
+        "token": "</s>"
       }
     ]
   }

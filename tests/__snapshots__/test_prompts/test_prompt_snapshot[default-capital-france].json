@@ -1,16 +1,16 @@
 [
   {
-    "answer": "Paris",
+    "answer": "Paris<|eot_id|>",
     "finish_reason": "eos_token",
-    "probability": 0.5851167404268445,
+    "probability": 0.5018829791474673,
     "tokens": [
       {
-        "probability": 0.9878690838813782,
+        "probability": 0.9889492988586426,
         "token": "Paris"
       },
       {
-        "probability": 0.5923019051551819,
-        "token": ""
+        "probability": 0.5074911117553711,
+        "token": "<|eot_id|>"
       }
     ]
   }

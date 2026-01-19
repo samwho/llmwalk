@@ -1,16 +1,16 @@
 [
   {
-    "answer": "Blue",
+    "answer": "Blue<|eot_id|>",
     "finish_reason": "eos_token",
-    "probability": 0.635196369415354,
+    "probability": 0.5522293080133664,
     "tokens": [
       {
-        "probability": 0.9809126853942871,
+        "probability": 0.9826804399490356,
         "token": "Blue"
       },
       {
-        "probability": 0.647556483745575,
-        "token": ""
+        "probability": 0.5619622468948364,
+        "token": "<|eot_id|>"
       }
     ]
   }

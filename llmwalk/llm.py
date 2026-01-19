@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
+from typing import Any
 
 import mlx.core as mx
 from mlx.nn import Module
@@ -36,7 +37,7 @@ class Branch:
     token: OutputToken | None
     probability: float = 1.0
     finish_reason: str | None = None
-    cache: list[KVCache] | None = None
+    cache: list[Any] | None = None
 
     def answer_tokens(self) -> list[OutputToken]:
         toks: list[OutputToken] = []
@@ -48,15 +49,38 @@ class Branch:
         return toks
 
 
-def _clone_kv_cache(c: KVCache) -> KVCache:
+def _clone_cache_state(state: Any) -> Any:
+    if state is None:
+        return None
+    if isinstance(state, list):
+        return [_clone_cache_state(item) for item in state]
+    if isinstance(state, tuple):
+        return tuple(_clone_cache_state(item) for item in state)
+    if isinstance(state, dict):
+        return {key: _clone_cache_state(value) for key, value in state.items()}
+    if hasattr(state, "shape") and hasattr(state, "dtype"):
+        return mx.array(state)
+    return state
+
+
+def _clone_kv_cache(c: Any) -> Any:
+    clone_from_state = getattr(c.__class__, "from_state", None)
+    if callable(clone_from_state):
+        state = _clone_cache_state(getattr(c, "state", None))
+        meta_state = _clone_cache_state(getattr(c, "meta_state", None))
+        return clone_from_state(state, meta_state)
     cloned = KVCache()
-    cloned.offset = c.offset
-    cloned.keys = mx.array(c.keys) if c.keys is not None else None
-    cloned.values = mx.array(c.values) if c.values is not None else None
+    cloned.offset = getattr(c, "offset", 0)
+    cloned.keys = (
+        mx.array(c.keys) if getattr(c, "keys", None) is not None else None
+    )
+    cloned.values = (
+        mx.array(c.values) if getattr(c, "values", None) is not None else None
+    )
     return cloned
 
 
-def _clone_prompt_cache(cache: list[KVCache]) -> list[KVCache]:
+def _clone_prompt_cache(cache: list[Any]) -> list[Any]:
     return [_clone_kv_cache(c) for c in cache]
 
 
@@ -82,7 +106,7 @@ def _infer_num_layers(model: Module) -> int | None:
     return None
 
 
-def _make_kv_cache(model: Module) -> list[KVCache] | None:
+def _make_kv_cache(model: Module) -> list[Any] | None:
     make_cache = getattr(model, "make_cache", None)
     if callable(make_cache):
         cache = make_cache()
@@ -168,7 +192,7 @@ class PromptTreeSearch:
         self.branches.add(root)
         self._push_frontier(root)
 
-    def _run_model(self, cache: list[KVCache] | None, input_ids: list[int]) -> mx.array:
+    def _run_model(self, cache: list[Any] | None, input_ids: list[int]) -> mx.array:
         self.tokens += 1
         inputs = mx.array([input_ids], mx.int32)
         logits = self.model(inputs, cache=cache)[:, -1, :]

@@ -1,24 +1,24 @@
 [
   {
-    "answer": "Jupiter.",
+    "answer": "Jupiter.<|eot_id|>",
     "finish_reason": "eos_token",
-    "probability": 0.7771506816745445,
+    "probability": 0.8255293530149063,
     "tokens": [
       {
-        "probability": 0.8974856734275818,
+        "probability": 0.8983283042907715,
         "token": "J"
       },
       {
-        "probability": 0.9881630539894104,
+        "probability": 0.9919568300247192,
         "token": "upiter"
       },
       {
-        "probability": 0.8763476610183716,
+        "probability": 0.9264925718307495,
         "token": "."
       },
       {
-        "probability": 0.9999370574951172,
-        "token": ""
+        "probability": 0.9999141693115234,
+        "token": "<|eot_id|>"
       }
     ]
   }

@@ -1,0 +1,51 @@
+[
+  {
+    "answer": "Blue<|im_end|>",
+    "finish_reason": "eos_token",
+    "probability": 0.12316401895187123,
+    "tokens": [
+      {
+        "probability": 0.14341197907924652,
+        "token": "Blue"
+      },
+      {
+        "probability": 0.8588126301765442,
+        "token": "<|im_end|>"
+      }
+    ]
+  },
+  {
+    "answer": "blue<|im_end|>",
+    "finish_reason": "eos_token",
+    "probability": 0.07140392548789842,
+    "tokens": [
+      {
+        "probability": 0.08698376268148422,
+        "token": "blue"
+      },
+      {
+        "probability": 0.8208879828453064,
+        "token": "<|im_end|>"
+      }
+    ]
+  },
+  {
+    "answer": "sky blue<|im_end|>",
+    "finish_reason": "eos_token",
+    "probability": 0.04571873785167844,
+    "tokens": [
+      {
+        "probability": 0.08698376268148422,
+        "token": "sky"
+      },
+      {
+        "probability": 0.7257075905799866,
+        "token": " blue"
+      },
+      {
+        "probability": 0.7242597937583923,
+        "token": "<|im_end|>"
+      }
+    ]
+  }
+]

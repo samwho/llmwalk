@@ -1,59 +1,59 @@
 [
   {
-    "answer": "Paris (not a typo, Paris is the capital city of France)",
+    "answer": "Paris (not a typo, Paris is the capital city of France)</s>",
     "finish_reason": "eos_token",
-    "probability": 0.002477645966623216,
+    "probability": 0.002473693723813941,
     "tokens": [
       {
-        "probability": 0.9997292160987854,
+        "probability": 0.9997254014015198,
         "token": "Paris"
       },
       {
-        "probability": 0.7607424259185791,
+        "probability": 0.7654509544372559,
         "token": "("
       },
       {
-        "probability": 0.19734331965446472,
+        "probability": 0.19673524796962738,
         "token": "not"
       },
       {
-        "probability": 0.8402746319770813,
+        "probability": 0.8429602384567261,
         "token": "a"
       },
       {
-        "probability": 0.5315064191818237,
+        "probability": 0.5434635281562805,
         "token": "typ"
       },
       {
-        "probability": 0.9996547698974609,
+        "probability": 0.9996700882911682,
         "token": "o"
       },
       {
-        "probability": 0.9821969866752625,
+        "probability": 0.9818860292434692,
         "token": ","
       },
       {
-        "probability": 0.7557774782180786,
+        "probability": 0.757783830165863,
         "token": "Paris"
       },
       {
-        "probability": 0.9985285401344299,
+        "probability": 0.9985247850418091,
         "token": "is"
       },
       {
-        "probability": 0.7320148348808289,
+        "probability": 0.7278103828430176,
         "token": "the"
       },
       {
-        "probability": 0.670669436454773,
+        "probability": 0.668671727180481,
         "token": "capital"
       },
       {
-        "probability": 0.5634616017341614,
+        "probability": 0.559885561466217,
         "token": "city"
       },
       {
-        "probability": 0.46561211347579956,
+        "probability": 0.46223899722099304,
         "token": "of"
       },
       {
@@ -61,186 +61,186 @@
         "token": "France"
       },
       {
-        "probability": 0.3925216794013977,
+        "probability": 0.3884447515010834,
         "token": ")"
       },
       {
-        "probability": 0.9867410659790039,
-        "token": ""
+        "probability": 0.9870968461036682,
+        "token": "</s>"
       }
     ]
   },
   {
-    "answer": "Paris (not a typo, Paris is the capital city, not the capital state)",
+    "answer": "Paris (not a typo, Paris is the capital city, not the capital state)</s>",
     "finish_reason": "eos_token",
-    "probability": 0.000701938764540693,
+    "probability": 0.0006990201018877606,
     "tokens": [
       {
-        "probability": 0.9997292160987854,
+        "probability": 0.9997254014015198,
         "token": "Paris"
       },
       {
-        "probability": 0.7607424259185791,
+        "probability": 0.7654509544372559,
         "token": "("
       },
       {
-        "probability": 0.19734331965446472,
+        "probability": 0.19673524796962738,
         "token": "not"
       },
       {
-        "probability": 0.8402746319770813,
+        "probability": 0.8429602384567261,
         "token": "a"
       },
       {
-        "probability": 0.5315064191818237,
+        "probability": 0.5434635281562805,
         "token": "typ"
       },
       {
-        "probability": 0.9996547698974609,
+        "probability": 0.9996700882911682,
         "token": "o"
       },
       {
-        "probability": 0.9821969866752625,
+        "probability": 0.9818860292434692,
         "token": ","
       },
       {
-        "probability": 0.7557774782180786,
+        "probability": 0.757783830165863,
         "token": "Paris"
       },
       {
-        "probability": 0.9985285401344299,
+        "probability": 0.9985247850418091,
         "token": "is"
       },
       {
-        "probability": 0.7320148348808289,
+        "probability": 0.7278103828430176,
         "token": "the"
       },
       {
-        "probability": 0.670669436454773,
+        "probability": 0.668671727180481,
         "token": "capital"
       },
       {
-        "probability": 0.5634616017341614,
+        "probability": 0.559885561466217,
         "token": "city"
       },
       {
-        "probability": 0.48795729875564575,
+        "probability": 0.4920508563518524,
         "token": ","
       },
       {
-        "probability": 0.5095872282981873,
+        "probability": 0.506279706954956,
         "token": "not"
       },
       {
-        "probability": 0.9860091805458069,
+        "probability": 0.9862593412399292,
         "token": "the"
       },
       {
-        "probability": 0.8910145163536072,
+        "probability": 0.8925827741622925,
         "token": "capital"
       },
       {
-        "probability": 0.486347496509552,
+        "probability": 0.47402724623680115,
         "token": "state"
       },
       {
-        "probability": 0.4830770790576935,
+        "probability": 0.4839845597743988,
         "token": ")"
       },
       {
-        "probability": 0.9954100251197815,
-        "token": ""
+        "probability": 0.9954157471656799,
+        "token": "</s>"
       }
     ]
   },
   {
-    "answer": "Paris (not a typo, Paris is the capital city, not the capital state or province)",
+    "answer": "Paris (not a typo, Paris is the capital city, not the capital state or province)</s>",
     "finish_reason": "eos_token",
-    "probability": 0.00013999200194631084,
+    "probability": 0.00013687786799052102,
     "tokens": [
       {
-        "probability": 0.9997292160987854,
+        "probability": 0.9997254014015198,
         "token": "Paris"
       },
       {
-        "probability": 0.7607424259185791,
+        "probability": 0.7654509544372559,
         "token": "("
       },
       {
-        "probability": 0.19734331965446472,
+        "probability": 0.19673524796962738,
         "token": "not"
       },
       {
-        "probability": 0.8402746319770813,
+        "probability": 0.8429602384567261,
         "token": "a"
       },
       {
-        "probability": 0.5315064191818237,
+        "probability": 0.5434635281562805,
         "token": "typ"
       },
       {
-        "probability": 0.9996547698974609,
+        "probability": 0.9996700882911682,
         "token": "o"
       },
       {
-        "probability": 0.9821969866752625,
+        "probability": 0.9818860292434692,
         "token": ","
       },
       {
-        "probability": 0.7557774782180786,
+        "probability": 0.757783830165863,
         "token": "Paris"
       },
       {
-        "probability": 0.9985285401344299,
+        "probability": 0.9985247850418091,
         "token": "is"
       },
       {
-        "probability": 0.7320148348808289,
+        "probability": 0.7278103828430176,
         "token": "the"
       },
       {
-        "probability": 0.670669436454773,
+        "probability": 0.668671727180481,
         "token": "capital"
       },
       {
-        "probability": 0.5634616017341614,
+        "probability": 0.559885561466217,
         "token": "city"
       },
       {
-        "probability": 0.48795729875564575,
+        "probability": 0.4920508563518524,
         "token": ","
       },
       {
-        "probability": 0.5095872282981873,
+        "probability": 0.506279706954956,
         "token": "not"
       },
       {
-        "probability": 0.9860091805458069,
+        "probability": 0.9862593412399292,
         "token": "the"
       },
       {
-        "probability": 0.8910145163536072,
+        "probability": 0.8925827741622925,
         "token": "capital"
       },
       {
-        "probability": 0.486347496509552,
+        "probability": 0.47402724623680115,
         "token": "state"
       },
       {
-        "probability": 0.19215478003025055,
+        "probability": 0.18953107297420502,
         "token": "or"
       },
       {
-        "probability": 0.7145478129386902,
+        "probability": 0.7137741446495056,
         "token": "province"
       },
       {
-        "probability": 0.7032752633094788,
+        "probability": 0.702131986618042,
         "token": ")"
       },
       {
-        "probability": 0.99314945936203,
-        "token": ""
+        "probability": 0.9931608438491821,
+        "token": "</s>"
       }
     ]
   }

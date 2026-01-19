@@ -1,0 +1,47 @@
+[
+  {
+    "answer": "4<|im_end|>",
+    "finish_reason": "eos_token",
+    "probability": 0.12457639899290385,
+    "tokens": [
+      {
+        "probability": 0.1630028337240219,
+        "token": "4"
+      },
+      {
+        "probability": 0.7642590999603271,
+        "token": "<|im_end|>"
+      }
+    ]
+  },
+  {
+    "answer": "10<|im_end|>",
+    "finish_reason": "eos_token",
+    "probability": 0.06993275503986496,
+    "tokens": [
+      {
+        "probability": 0.09287621080875397,
+        "token": "10"
+      },
+      {
+        "probability": 0.752967357635498,
+        "token": "<|im_end|>"
+      }
+    ]
+  },
+  {
+    "answer": "5<|im_end|>",
+    "finish_reason": "eos_token",
+    "probability": 0.06543600334190103,
+    "tokens": [
+      {
+        "probability": 0.09287621080875397,
+        "token": "5"
+      },
+      {
+        "probability": 0.7045507431030273,
+        "token": "<|im_end|>"
+      }
+    ]
+  }
+]

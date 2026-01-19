@@ -1,20 +1,20 @@
 [
   {
-    "answer": "Four.",
+    "answer": "Four.<|eot_id|>",
     "finish_reason": "eos_token",
-    "probability": 0.4089153564667007,
+    "probability": 0.46984967703604763,
     "tokens": [
       {
-        "probability": 0.585510790348053,
+        "probability": 0.6050724387168884,
         "token": "Four"
       },
       {
-        "probability": 0.6984281539916992,
+        "probability": 0.7765699028968811,
         "token": "."
       },
       {
-        "probability": 0.9999465346336365,
-        "token": ""
+        "probability": 0.9999332427978516,
+        "token": "<|eot_id|>"
       }
     ]
   }
