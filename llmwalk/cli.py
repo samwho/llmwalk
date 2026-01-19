@@ -344,7 +344,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--min-probability",
         type=float,
-        default=0.0001,
+        default=0.001,
         help="A minimum probability threshold for branches. If a branch becomes less likely than this, we stop walking it. Lowering this can increase runtime.",
     )
     parser.add_argument(
